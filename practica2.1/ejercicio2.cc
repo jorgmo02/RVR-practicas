@@ -3,6 +3,9 @@
 #include <netdb.h>
 #include <string.h>
 #include <iostream>
+#include <unistd.h>
+
+#define BUFFLEN 80
 
 int main(int argc, char** argv)
 {
@@ -37,7 +40,6 @@ int main(int argc, char** argv)
     
     while(true)
     {
-        #define BUFFLEN 80
         char buffer[BUFFLEN];
         char host[NI_MAXHOST];
         char service[NI_MAXSERV];
@@ -85,9 +87,11 @@ int main(int argc, char** argv)
         int sent = sendto(sd, clientbuff, strlen(clientbuff), 0, &client, clientlen);
         if(sent == -1) {
             std::cout << "ERROR: sendto failed\n";
-            return -1;
+            return -1;// ha habido un error
         }
     }
+
+    close(sd);
 
     return 0;
 }

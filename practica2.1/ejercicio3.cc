@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <iostream>
 
+#define BUFFLEN 80
+
 int main(int argc, char** argv)
 {
     if(argc < 4) {
@@ -36,7 +38,6 @@ int main(int argc, char** argv)
 
     freeaddrinfo(res);
 
-    #define BUFFLEN 80
     char buffer[BUFFLEN] = { *argv[3] };    // stores input that is going to be sent
 
     while (true)
