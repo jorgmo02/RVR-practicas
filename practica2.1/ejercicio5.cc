@@ -30,7 +30,7 @@ int main(int argc, char** argv)
     }
 
 
-    if (connect(sd, (sockaddr*) res->ai_addr, res->ai_addrlen) != 0)    // el tam maximo de la cola de conexiones pendientes es 10 (man 2 listen)
+    if (connect(sd, (sockaddr*) res->ai_addr, res->ai_addrlen) != 0)    // iniciar conexion con el socket
     {
         std::cout << "ERROR: connect failed with errno: " << errno << "\n";
         return -1;
