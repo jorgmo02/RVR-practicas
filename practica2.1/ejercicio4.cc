@@ -68,7 +68,7 @@ int main(int argc, char** argv)
         }
         if(bytes == 0) {
             std::cout << "Conexión terminada\n";
-            return 1;
+            break;
         }
 
         buffer[bytes] = 0;

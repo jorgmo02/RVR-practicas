@@ -45,7 +45,7 @@ int main(int argc, char** argv)
         std::cin >> buffer;
 
         int sendbytes = strlen(buffer);
-        if(strlen(buffer) == 1 && buffer[0] == 'Q') return 1;
+        if(strlen(buffer) == 1 && buffer[0] == 'Q') break;
 
         int sent = send(sd, buffer, sendbytes, 0);
         if(sent == -1) {

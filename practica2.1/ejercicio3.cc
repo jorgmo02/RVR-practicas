@@ -54,7 +54,7 @@ int main(int argc, char** argv)
             std::cout << "ERROR: sendto failed\n";
             return -1;
         }
-        if (buffer[0] == 'q') return 1;
+        if (buffer[0] == 'q') break;
 
         int bytes = recvfrom(sd, (void*) recvbuffer, BUFFLEN-1, 0, &server, &serverlen); 
         if(bytes == -1) {

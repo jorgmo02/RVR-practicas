@@ -37,8 +37,9 @@ int main(int argc, char** argv)
     freeaddrinfo(res);
 
     time_t myTime = time(NULL);
-    
-    while(true)
+
+    bool cont = true;    
+    while(cont)
     {
         char buffer[BUFFLEN];
         char host[NI_MAXHOST];
@@ -74,7 +75,8 @@ int main(int argc, char** argv)
         
         case 'q':
             std::cout << "Saliendo...\n";
-            return 1;
+            cont = false;
+            continue;
             break;      // no hace falta pero no está de más ponerlo
 
         default:
