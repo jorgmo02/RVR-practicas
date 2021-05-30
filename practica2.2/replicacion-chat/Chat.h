@@ -42,6 +42,8 @@ public:
 
     ChatMessage(const std::string& n, const std::string& m):nick(n),message(m){};
 
+    ChatMessage(MessageType msgType, const std::string& n, const std::string& m): type(msgType), nick(n),message(m){};
+
     void to_bin();
 
     int from_bin(char * bobj);
@@ -126,6 +128,8 @@ public:
 
 private:
 
+    bool fin = false;
+    
     /**
      * Socket para comunicar con el servidor
      */

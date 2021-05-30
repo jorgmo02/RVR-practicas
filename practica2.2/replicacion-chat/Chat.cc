@@ -90,13 +90,18 @@ void ChatServer::do_messages()
         {
             auto it = clients.begin();
             bool found = false;
-            while(it != clients.end())
+            while(!found && it != clients.end())
             {
-                if(*it->get() == *sck) {       // hemos encontrado el que queríamos
-                    std::cout << "LOGOUT " << msg.nick << "\n";
+                if(*it->get() == *sck)       // hemos encontrado el que queríamos
+                {
+                    // avisar al cliente
+                    ChatMessage lgOut(ChatMessage::MessageType::LOGOUT, msg.nick, "");
+                    it->get()->send(lgOut, *it->get());
+                    
                     clients.erase(it);
                     it = clients.end();
                     found = true;
+                    std::cout << "LOGOUT " << msg.nick << "\n";
                 }
                 else ++it;
             }
@@ -109,11 +114,9 @@ void ChatServer::do_messages()
             // METER SI NO ESTABA YA (por si se intenta conectar antes de que se encienda el server)
             auto it = clients.begin();
             bool found = false;
-            while(it != clients.end())
-            {
-                if(*it->get() == *sck)
-                    found = true;
-                else ++it;
+            while(!found && it != clients.end()) {
+                found = *it->get() == *sck;
+                ++it;
             }
             if(!found) {
                 clients.push_back(std::move(client));
@@ -160,6 +163,7 @@ void ChatClient::logout()
     if(socket.send(em, socket) == -1)
         std::cout << "ERROR: no se puso send\n";
     //std::cout << "LOGOUT\n";
+    fin = true;
 }
 
 void ChatClient::input_thread()
@@ -184,18 +188,15 @@ void ChatClient::input_thread()
 
 void ChatClient::net_thread()
 {
-    while (true)
+    ChatMessage msg;
+    while (!fin)
     {
-        ChatMessage msg;
         //Recibir Mensajes de red
         if(socket.recv(msg) == -1)
             std::cout << "ERROR: no se pudo recv\n";
-
+        
         //Mostrar en pantalla el mensaje de la forma "nick: mensaje"
-        if(msg.nick != nick)
+        if(msg.type != ChatMessage::MessageType::LOGOUT)
             std::cout << msg.nick << ": " << msg.message << "\n";
-
-        else if (msg.type == ChatMessage::MessageType::LOGOUT)
-            return;
     }
 }
