@@ -74,7 +74,11 @@ bool operator== (const Socket &s1, const Socket &s2)
     return  sock1->sin_addr.s_addr == sock2->sin_addr.s_addr &&
             sock1->sin_family == sock2->sin_family &&
             sock1->sin_port == sock2->sin_port;
-};
+}
+
+bool operator!= (const Socket &s1, const Socket &s2) {
+    return !(s1 == s2);
+}
 
 std::ostream& operator<<(std::ostream& os, const Socket& s)
 {

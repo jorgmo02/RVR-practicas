@@ -3,6 +3,8 @@
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 
+using msgType = ChatMessage::MessageType;
+
 void ChatMessage::to_bin()
 {
     alloc_data(MESSAGE_SIZE);
@@ -16,18 +18,19 @@ void ChatMessage::to_bin()
     // tipo
     memcpy(aux, &type, sizeof(uint8_t));
     aux += sizeof(uint8_t);
-    
+
     memcpy(aux, nick.c_str(), sizeof(char) * SIZENICK);
     aux += sizeof(char) * SIZENICK;
     memcpy(aux, message.c_str(), sizeof(char) * SIZEMSG);
 }
 
-int ChatMessage::from_bin(char * bobj)
+int ChatMessage::from_bin(char *bobj)
 {
-    if(data == nullptr) return -1;
+    if (data == nullptr)
+        return -1;
 
     alloc_data(MESSAGE_SIZE);
-    if(strlen(bobj) >= _size)
+    if (strlen(bobj) >= _size)
     {
         std::cout << "Invalid data buffer in from_bin\n";
         return -1;
@@ -49,16 +52,49 @@ void ChatServer::do_messages()
 {
     while (true)
     {
+        ChatMessage msg;
+        Socket* sck = nullptr; // lo inicializa recv
+        socket.recv(msg, sck);
         /*
          * NOTA: los clientes están definidos con "smart pointers", es necesario
          * crear un unique_ptr con el objeto socket recibido y usar std::move
          * para añadirlo al vector
          */
+        std::unique_ptr<Socket> client(sck);
 
         //Recibir Mensajes en y en función del tipo de mensaje
         // - LOGIN: Añadir al vector clients
         // - LOGOUT: Eliminar del vector clients
         // - MESSAGE: Reenviar el mensaje a todos los clientes (menos el emisor)
+        switch (msg.type)
+        {
+        case msgType::LOGIN:
+            clients.push_back(std::move(client));
+            std::cout << "LOGIN " << msg.nick << "\n";
+            break;
+        case msgType::LOGOUT:
+            auto it = clients.begin();
+            while(it != clients.end())
+            {
+                if(*it->get() == *sck) {       // hemos encontrado el que queríamos
+                    std::cout << "LOGOUT " << msg.nick << "\n";
+                    clients.erase(it);
+                    break;
+                }
+                ++it;
+            }
+            std::cout << "ERROR: No se pudo hacer logout\n"; // no hemos encontrado el que queríamos
+            break;
+        case msgType::MESSAGE:            
+            std::cout << "MESSAGE " << msg.nick << "\n";
+            for(auto it = clients.begin(); it != clients.end(); ++it)
+            {
+                if(*it->get() != *sck) {                    // enviar msg si != el que lo ha mandado
+                    it->get()->send(msg, *it->get());
+                }
+            }
+            break;
+        }
     }
 }
 
@@ -91,10 +127,9 @@ void ChatClient::input_thread()
 
 void ChatClient::net_thread()
 {
-    while(true)
+    while (true)
     {
         //Recibir Mensajes de red
         //Mostrar en pantalla el mensaje de la forma "nick: mensaje"
     }
 }
-
