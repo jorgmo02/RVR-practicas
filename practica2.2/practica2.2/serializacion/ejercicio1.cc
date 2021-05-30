@@ -18,13 +18,13 @@ public:
     {
         strncpy(name, _n, MAX_NAME);
         name[MAX_NAME - 1] = 0;
-        alloc_data(MAX_NAME * sizeof(char) + sizeof(int) + sizeof(int));
     };
 
     virtual ~Jugador(){};
 
     void to_bin()
     {
+        alloc_data(MAX_NAME * sizeof(char) + sizeof(int) + sizeof(int));
         char* aux = _data;
     
         // nombre
@@ -40,6 +40,8 @@ public:
     int from_bin(char * data)
     {    
         if(data == nullptr) return -1;
+        
+        alloc_data(MAX_NAME * sizeof(char) + sizeof(int) + sizeof(int));
         if(strlen(data) >= _size)
         {
             std::cout << "Invalid data\n";
