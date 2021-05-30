@@ -11,8 +11,8 @@ Socket::Socket(const char * address, const char * port):sd(-1)
 
     memset((void*) &hints, 0, sizeof(addrinfo));
 
-    hints.ai_family = SOCK_DGRAM;
-    hints.ai_flags = AF_INET;
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_family = AF_INET;
 
     int resGetAddr = getaddrinfo(address, port, &hints, &res);
     if(resGetAddr != 0) // ha habido un error
@@ -28,10 +28,15 @@ Socket::Socket(const char * address, const char * port):sd(-1)
         std::cerr << "ERROR: socket creation failed\n";
         return;
     }
-    sa = *(res->ai_addr);
+    sa = *res->ai_addr;
     sa_len = res->ai_addrlen;
 
     freeaddrinfo(res);
+}
+
+Socket::Socket(struct sockaddr * _sa, socklen_t _sa_len):sd(-1), sa(*_sa), sa_len(_sa_len) {
+    sd = socket(AF_INET, SOCK_DGRAM, 0);
+    bind();
 }
 
 int Socket::recv(Serializable &obj, Socket * &sock)
@@ -45,6 +50,7 @@ int Socket::recv(Serializable &obj, Socket * &sock)
 
     if ( bytes <= 0 )
     {
+        //std::cout << "bytes <= 0\n";
         return -1;
     }
 

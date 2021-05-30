@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 
-using msgType = ChatMessage::MessageType;
+//using msgType = ChatMessage::MessageType;
 
 void ChatMessage::to_bin()
 {
@@ -21,26 +21,32 @@ void ChatMessage::to_bin()
 
     memcpy(aux, nick.c_str(), sizeof(char) * SIZENICK);
     aux += sizeof(char) * SIZENICK;
+
     memcpy(aux, message.c_str(), sizeof(char) * SIZEMSG);
 }
 
 int ChatMessage::from_bin(char *bobj)
 {
-    if (data == nullptr)
-        return -1;
+    // if (bobj == nullptr){
+    //     std::cout << "bobj was nullptr in ChatMessage::from_bin\n";
+    //     return -1;
+    // }
 
     alloc_data(MESSAGE_SIZE);
-    if (strlen(bobj) >= _size)
-    {
-        std::cout << "Invalid data buffer in from_bin\n";
-        return -1;
-    }
+    // if (strlen(bobj) >= _size)
+    // {
+    //     std::cout << "Invalid data buffer in from_bin\n";
+    //     return -1;
+    // }
 
     memcpy(static_cast<void *>(_data), bobj, MESSAGE_SIZE);
 
-    memcpy(&type, _data, sizeof(uint8_t));
-    memcpy(&nick, _data + sizeof(uint8_t), sizeof(char) * SIZENICK);
-    memcpy(&message, _data + sizeof(uint8_t) + sizeof(char) * SIZENICK, sizeof(char) * SIZEMSG);
+    char* aux = _data;
+    memcpy(&type, aux, sizeof(uint8_t));
+    aux += sizeof(uint8_t);
+    memcpy(&nick, aux, sizeof(char) * SIZENICK);
+    aux += sizeof(char) * SIZENICK;
+    memcpy(&message, aux, sizeof(char) * SIZEMSG);
 
     return 0;
 }
@@ -53,8 +59,13 @@ void ChatServer::do_messages()
     while (true)
     {
         ChatMessage msg;
-        Socket* sck = nullptr; // lo inicializa recv
-        socket.recv(msg, sck);
+        msg.type = (ChatMessage::MessageType)3;
+        Socket* sck = &socket;
+        if(socket.recv(msg, sck) == -1)
+        {
+            //std::cout << "Error in socket recv; abort connection.\n";
+            continue;
+        }
         /*
          * NOTA: los clientes están definidos con "smart pointers", es necesario
          * crear un unique_ptr con el objeto socket recibido y usar std::move
@@ -68,26 +79,28 @@ void ChatServer::do_messages()
         // - MESSAGE: Reenviar el mensaje a todos los clientes (menos el emisor)
         switch (msg.type)
         {
-        case msgType::LOGIN:
+        case ChatMessage::MessageType::LOGIN:{
             clients.push_back(std::move(client));
             std::cout << "LOGIN " << msg.nick << "\n";
             break;
+        }
 
-        case msgType::LOGOUT:
+        case ChatMessage::MessageType::LOGOUT: {
             auto it = clients.begin();
             while(it != clients.end())
             {
                 if(*it->get() == *sck) {       // hemos encontrado el que queríamos
                     std::cout << "LOGOUT " << msg.nick << "\n";
                     clients.erase(it);
-                    return;                    // jaime me mataría por estas cosas pero por suerte no me lo corrige él
+                    it = clients.end();
                 }
-                ++it;
+                else ++it;
             }
-            std::cout << "ERROR: No se pudo hacer logout\n"; // no hemos encontrado el que queríamos (???)
+            //std::cout << "ERROR: No se pudo hacer logout\n"; // no hemos encontrado el que queríamos (???)
             break;
+        }
 
-        case msgType::MESSAGE:            
+        case ChatMessage::MessageType::MESSAGE: {
             std::cout << "MESSAGE " << msg.nick << "\n";
             for(auto it = clients.begin(); it != clients.end(); ++it)
             {
@@ -96,6 +109,8 @@ void ChatServer::do_messages()
                 }
             }
             break;
+        }
+
         }
     }
 }
@@ -110,7 +125,8 @@ void ChatClient::login()
     ChatMessage em(nick, msg);
     em.type = ChatMessage::LOGIN;
 
-    socket.send(em, socket);
+    if(socket.send(em, socket) == -1)
+        std::cout << "no se pudo enviar\n";
 }
 
 void ChatClient::logout()
@@ -120,12 +136,14 @@ void ChatClient::logout()
     ChatMessage em(nick, msg);
     em.type = ChatMessage::LOGOUT;
 
-    socket.send(em, socket);
+    if(socket.send(em, socket) == -1)
+        std::cout << "ERROR: no se puso send\n";
+    std::cout << "LOGOUT\n";
 }
 
 void ChatClient::input_thread()
 {
-    std::string msg;
+    std::string msg = "";
     do
     {
         // Leer stdin con std::getline
@@ -133,23 +151,27 @@ void ChatClient::input_thread()
         std::getline(std::cin, msg);
 
         ChatMessage chatMsg(nick, msg);
-        chatMsg.type = (msg == "LOGOUT") ? ChatMessage::LOGOUT : ChatMessage::MESSAGE;
+        chatMsg.type = ChatMessage::MESSAGE;
         
-        socket.send(chatMsg, socket);
+        if(socket.send(chatMsg, socket) == -1)
+            std::cout << "ERROR: no se pudo send\n";
     
     } while(msg != "LOGOUT");
 
+    logout();
 }
 
 void ChatClient::net_thread()
 {
-    ChatMessage msg;
     while (true)
     {
+        ChatMessage msg;
         //Recibir Mensajes de red
-        socket.recv(msg);
+        if(socket.recv(msg) == -1)
+            std::cout << "ERROR: no se pudo recv\n";
 
         //Mostrar en pantalla el mensaje de la forma "nick: mensaje"
-        std::cout << msg.nick << ": " << msg.message << "\n";
+        if(msg.nick != nick)
+            std::cout << msg.nick << ": " << msg.message << "\n";
     }
 }

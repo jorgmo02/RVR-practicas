@@ -1,7 +1,7 @@
 CC=g++
 CFLAGS=-g -I.
-DEPS = Socket.h Chat.h Jugador.h
-OBJ = Socket.o Chat.o Jugador.o
+DEPS = Socket.h Chat.h
+OBJ = Socket.o Chat.o
 LIBS=-lpthread
 
 %.o: %.cc $(DEPS)
@@ -14,10 +14,6 @@ cs: $(OBJ) ChatServer.o
 
 cc: $(OBJ) ChatClient.o
 	g++ -o $@ $^ $(CFLAGS) $(LIBS)
-
-cs: $(OBJ) Jugador.o
-	g++ -o $@ $^ $(CFLAGS) $(LIBS)
-
 
 .PHONY: clean
 
