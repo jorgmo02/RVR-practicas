@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #define MAX_NAME 16
+#define JUGADOR_SIZE MAX_NAME * sizeof(char) + sizeof(int) + sizeof(int)
 
 class Jugador: public Serializable
 {
@@ -24,7 +25,7 @@ public:
 
     void to_bin()
     {
-        alloc_data(MAX_NAME * sizeof(char) + sizeof(int) + sizeof(int));
+        alloc_data(JUGADOR_SIZE);
         char* aux = _data;
     
         // nombre
@@ -41,7 +42,7 @@ public:
     {    
         if(data == nullptr) return -1;
         
-        alloc_data(MAX_NAME * sizeof(char) + sizeof(int) + sizeof(int));
+        alloc_data(JUGADOR_SIZE);
         if(strlen(data) >= _size)
         {
             std::cout << "Invalid data\n";

@@ -10,15 +10,34 @@ void ChatMessage::to_bin()
     memset(_data, 0, MESSAGE_SIZE);
 
     //Serializar los campos type, nick y message en el buffer _data
+
+    char* aux = _data;
+
+    // tipo
+    memcpy(aux, &type, sizeof(uint8_t));
+    aux += sizeof(uint8_t);
+    
+    memcpy(aux, nick.c_str(), sizeof(char) * SIZENICK);
+    aux += sizeof(char) * SIZENICK;
+    memcpy(aux, message.c_str(), sizeof(char) * SIZEMSG);
 }
 
 int ChatMessage::from_bin(char * bobj)
 {
+    if(data == nullptr) return -1;
+
     alloc_data(MESSAGE_SIZE);
+    if(strlen(bobj) >= _size)
+    {
+        std::cout << "Invalid data buffer in from_bin\n";
+        return -1;
+    }
 
     memcpy(static_cast<void *>(_data), bobj, MESSAGE_SIZE);
 
-    //Reconstruir la clase usando el buffer _data
+    memcpy(&type, _data, sizeof(uint8_t));
+    memcpy(&nick, _data + sizeof(uint8_t), sizeof(char) * SIZENICK);
+    memcpy(&message, _data + sizeof(uint8_t) + sizeof(char) * SIZENICK, sizeof(char) * SIZEMSG);
 
     return 0;
 }
