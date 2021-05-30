@@ -27,17 +27,17 @@ void ChatMessage::to_bin()
 
 int ChatMessage::from_bin(char *bobj)
 {
-    // if (bobj == nullptr){
-    //     std::cout << "bobj was nullptr in ChatMessage::from_bin\n";
-    //     return -1;
-    // }
+    if (bobj == nullptr){
+        std::cout << "bobj was nullptr in ChatMessage::from_bin\n";
+        return -1;
+    }
 
     alloc_data(MESSAGE_SIZE);
-    // if (strlen(bobj) >= _size)
-    // {
-    //     std::cout << "Invalid data buffer in from_bin\n";
-    //     return -1;
-    // }
+    if (strlen(bobj) >= _size)
+    {
+        std::cout << "Invalid data buffer in from_bin\n";
+        return -1;
+    }
 
     memcpy(static_cast<void *>(_data), bobj, MESSAGE_SIZE);
 
@@ -89,20 +89,38 @@ void ChatServer::do_messages()
         case ChatMessage::MessageType::LOGOUT:
         {
             auto it = clients.begin();
+            bool found = false;
             while(it != clients.end())
             {
                 if(*it->get() == *sck) {       // hemos encontrado el que queríamos
                     std::cout << "LOGOUT " << msg.nick << "\n";
                     clients.erase(it);
                     it = clients.end();
+                    found = true;
                 }
                 else ++it;
             }
-            //std::cout << "ERROR: No se pudo hacer logout\n"; // no hemos encontrado el que queríamos (???)
+            if(!found) std::cout << "ERROR: No se pudo hacer logout\n"; // no hemos encontrado el que queríamos (???)
             break;
         }
 
-        case ChatMessage::MessageType::MESSAGE: {
+        case ChatMessage::MessageType::MESSAGE:
+        {
+            // METER SI NO ESTABA YA (por si se intenta conectar antes de que se encienda el server)
+            auto it = clients.begin();
+            bool found = false;
+            while(it != clients.end())
+            {
+                if(*it->get() == *sck)
+                    found = true;
+                else ++it;
+            }
+            if(!found) {
+                clients.push_back(std::move(client));
+                std::cout << "LOGIN " << msg.nick << "\n";
+            }
+
+            // mensaje
             std::cout << "MESSAGE " << msg.nick << "\n";
             std::cout << msg.message << "\n";
             for(auto it = clients.begin(); it != clients.end(); ++it)
@@ -146,22 +164,21 @@ void ChatClient::logout()
 
 void ChatClient::input_thread()
 {
-    std::string msg = "";
-    do
+    std::string msg;
+    std::getline(std::cin, msg);
+    while(msg != "LOGOUT")
     {
         // Leer stdin con std::getline
         // Enviar al servidor usando socket
-        std::getline(std::cin, msg);
-        
         ChatMessage chatMsg(nick, msg);
-        chatMsg.type = (msg != "LOGOUT") ? ChatMessage::MESSAGE : ChatMessage::LOGOUT;
+        chatMsg.type = ChatMessage::MESSAGE;
 
         if(socket.send(chatMsg, socket) == -1)
             std::cout << "ERROR: no se pudo send\n";
-    
-    } while(msg != "LOGOUT");
+        
+        std::getline(std::cin, msg);
+    }
 
-    std::cout << "se pudo terminar\n";
     logout();
 }
 
@@ -177,5 +194,8 @@ void ChatClient::net_thread()
         //Mostrar en pantalla el mensaje de la forma "nick: mensaje"
         if(msg.nick != nick)
             std::cout << msg.nick << ": " << msg.message << "\n";
+
+        else if (msg.type == ChatMessage::MessageType::LOGOUT)
+            return;
     }
 }
