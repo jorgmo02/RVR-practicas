@@ -6,7 +6,32 @@
 Socket::Socket(const char * address, const char * port):sd(-1)
 {
     //Construir un socket de tipo AF_INET y SOCK_DGRAM usando getaddrinfo.
+    addrinfo hints;      // opciones de filtrado
+    addrinfo* res;       // variable para almacenar el resultado de getaddrinfo
+
+    memset((void*) &hints, 0, sizeof(addrinfo));
+
+    hints.ai_family = SOCK_DGRAM;
+    hints.ai_flags = AF_INET;
+
+    int resGetAddr = getaddrinfo(address, port, &hints, &res);
+    if(resGetAddr != 0) // ha habido un error
+    {
+        std::cerr << "ERROR: getaddrinfo failed with errorcode: " << resGetAddr << "\n";
+        return;
+    }
+
+    
     //Con el resultado inicializar los miembros sd, sa y sa_len de la clase
+    sd = socket(res->ai_family, res->ai_socktype, 0);
+    if(sd == -1) {
+        std::cerr << "ERROR: socket creation failed\n";
+        return;
+    }
+    sa = *(res->ai_addr);
+    sa_len = res->ai_addrlen;
+
+    freeaddrinfo(res);
 }
 
 int Socket::recv(Serializable &obj, Socket * &sock)
@@ -28,24 +53,27 @@ int Socket::recv(Serializable &obj, Socket * &sock)
         sock = new Socket(&sa, sa_len);
     }
 
-    obj.from_bin(buffer);
-
-    return 0;
+    return obj.from_bin(buffer);
 }
 
 int Socket::send(Serializable& obj, const Socket& sock)
 {
     //Serializar el objeto
+    obj.to_bin();
+    
     //Enviar el objeto binario a sock usando el socket sd
-    return 0;
+    return sendto(sock.sd, obj.data(), obj.size(), 0, &sock.sa, sock.sa_len);
 }
 
 bool operator== (const Socket &s1, const Socket &s2)
 {
-    //Comparar los campos sin_family, sin_addr.s_addr y sin_port
-    //de la estructura sockaddr_in de los Sockets s1 y s2
-    //Retornar false si alguno difiere
-    return false;
+    // cast de sockaddr a sockaddr_in
+    const sockaddr_in* sock1 = (const sockaddr_in*)&s1; 
+    const sockaddr_in* sock2 = (const sockaddr_in*)&s2; 
+
+    return  sock1->sin_addr.s_addr == sock2->sin_addr.s_addr &&
+            sock1->sin_family == sock2->sin_family &&
+            sock1->sin_port == sock2->sin_port;
 };
 
 std::ostream& operator<<(std::ostream& os, const Socket& s)
