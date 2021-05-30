@@ -72,6 +72,7 @@ void ChatServer::do_messages()
             clients.push_back(std::move(client));
             std::cout << "LOGIN " << msg.nick << "\n";
             break;
+
         case msgType::LOGOUT:
             auto it = clients.begin();
             while(it != clients.end())
@@ -79,12 +80,13 @@ void ChatServer::do_messages()
                 if(*it->get() == *sck) {       // hemos encontrado el que queríamos
                     std::cout << "LOGOUT " << msg.nick << "\n";
                     clients.erase(it);
-                    break;
+                    return;                    // jaime me mataría por estas cosas pero por suerte no me lo corrige él
                 }
                 ++it;
             }
-            std::cout << "ERROR: No se pudo hacer logout\n"; // no hemos encontrado el que queríamos
+            std::cout << "ERROR: No se pudo hacer logout\n"; // no hemos encontrado el que queríamos (???)
             break;
+
         case msgType::MESSAGE:            
             std::cout << "MESSAGE " << msg.nick << "\n";
             for(auto it = clients.begin(); it != clients.end(); ++it)
@@ -112,24 +114,42 @@ void ChatClient::login()
 }
 
 void ChatClient::logout()
-{
-    // Completar
+{    
+    std::string msg;
+
+    ChatMessage em(nick, msg);
+    em.type = ChatMessage::LOGOUT;
+
+    socket.send(em, socket);
 }
 
 void ChatClient::input_thread()
 {
-    while (true)
+    std::string msg;
+    do
     {
         // Leer stdin con std::getline
         // Enviar al servidor usando socket
-    }
+        std::getline(std::cin, msg);
+
+        ChatMessage chatMsg(nick, msg);
+        chatMsg.type = (msg == "LOGOUT") ? ChatMessage::LOGOUT : ChatMessage::MESSAGE;
+        
+        socket.send(chatMsg, socket);
+    
+    } while(msg != "LOGOUT");
+
 }
 
 void ChatClient::net_thread()
 {
+    ChatMessage msg;
     while (true)
     {
         //Recibir Mensajes de red
+        socket.recv(msg);
+
         //Mostrar en pantalla el mensaje de la forma "nick: mensaje"
+        std::cout << msg.nick << ": " << msg.message << "\n";
     }
 }
