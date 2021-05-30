@@ -44,9 +44,9 @@ int ChatMessage::from_bin(char *bobj)
     char* aux = _data;
     memcpy(&type, aux, sizeof(uint8_t));
     aux += sizeof(uint8_t);
-    memcpy(&nick, aux, sizeof(char) * SIZENICK);
+    nick = aux;
     aux += sizeof(char) * SIZENICK;
-    memcpy(&message, aux, sizeof(char) * SIZEMSG);
+    message = aux;
 
     return 0;
 }
@@ -79,13 +79,15 @@ void ChatServer::do_messages()
         // - MESSAGE: Reenviar el mensaje a todos los clientes (menos el emisor)
         switch (msg.type)
         {
-        case ChatMessage::MessageType::LOGIN:{
+        case ChatMessage::MessageType::LOGIN:
+        {
             clients.push_back(std::move(client));
             std::cout << "LOGIN " << msg.nick << "\n";
             break;
         }
 
-        case ChatMessage::MessageType::LOGOUT: {
+        case ChatMessage::MessageType::LOGOUT:
+        {
             auto it = clients.begin();
             while(it != clients.end())
             {
@@ -102,6 +104,7 @@ void ChatServer::do_messages()
 
         case ChatMessage::MessageType::MESSAGE: {
             std::cout << "MESSAGE " << msg.nick << "\n";
+            std::cout << msg.message << "\n";
             for(auto it = clients.begin(); it != clients.end(); ++it)
             {
                 if(*it->get() != *sck) {                    // enviar msg si != el que lo ha mandado
@@ -138,7 +141,7 @@ void ChatClient::logout()
 
     if(socket.send(em, socket) == -1)
         std::cout << "ERROR: no se puso send\n";
-    std::cout << "LOGOUT\n";
+    //std::cout << "LOGOUT\n";
 }
 
 void ChatClient::input_thread()
@@ -149,15 +152,16 @@ void ChatClient::input_thread()
         // Leer stdin con std::getline
         // Enviar al servidor usando socket
         std::getline(std::cin, msg);
-
-        ChatMessage chatMsg(nick, msg);
-        chatMsg.type = ChatMessage::MESSAGE;
         
+        ChatMessage chatMsg(nick, msg);
+        chatMsg.type = (msg != "LOGOUT") ? ChatMessage::MESSAGE : ChatMessage::LOGOUT;
+
         if(socket.send(chatMsg, socket) == -1)
             std::cout << "ERROR: no se pudo send\n";
     
     } while(msg != "LOGOUT");
 
+    std::cout << "se pudo terminar\n";
     logout();
 }
 
